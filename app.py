@@ -65,7 +65,7 @@ input_dict = {
     "Digestive System Disease": bin_code(digestive),
     "Days of β-Lactamase Inhibitor Combinations Use": days_beta,
 }
-X_input = pd.DataFrame([input_dict], columns=FEATURES)
+X_input_df = pd.DataFrame([input_dict], columns=FEATURES)
 
 # Feature importance image
 image_path = os.path.join("assets", "SFS12-2.jpg")
@@ -78,8 +78,9 @@ else:
 st.subheader("📊 Prediction Result")
 if st.button("Calculate Resistance Probability"):
     try:
-        X_input_proc = preprocess.transform(X_input)
-        proba = clf.predict_proba(X_input_proc)[:, 1][0]
+        # Transform with saved preprocess, then predict with saved classifier
+        X_input_proc = preprocess.transform(X_input_df)
+        proba = float(clf.predict_proba(X_input_proc)[:, 1][0])
         color = "red" if proba > 0.5 else "green"
         st.markdown(
             f"<div style='color:{color}; font-size:24px; font-weight:bold;'>Predicted Probability: {proba*100:.2f}%</div>",
