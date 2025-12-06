@@ -1,43 +1,47 @@
-# app.py
-import joblib, pandas as pd, streamlit as st
+import streamlit as st
+import pandas as pd
+import joblib
+import os
 
 st.set_page_config(page_title="CRKP Resistance Prediction Tool", page_icon="🧫", layout="wide")
 
-# Note box
+# 页面说明
 st.markdown("""
-**Note:**
-1. **This website aims to develop a tool that uses machine learning algorithms to assess whether Klebsiella pneumoniae in patients is carbapenem-resistant.**
+### 🧫 CRKP Carbapenem Resistance Risk Assessment Tool
 
-2. **The risk of carbapenem resistance can be calculated by inputting 12 indicators, including:**
-Days of Indwelling Urinary Catheterization, Vascular System Disease, Respiratory System Disease, Days of Carbapenems Use, ICU Admission, Metabolic Abnormality, Respiratory Tract Infection, Urinary System Disease, Albumin, Age, Digestive System Disease, Days of β-Lactamase Inhibitor Combinations Use.
-
-3. **This tool is only for the preliminary assessment of carbapenem resistance in Klebsiella pneumoniae in patients and shall not replace clinical diagnosis.**
+**说明：**
+1. 本工具用于评估患者感染的肺炎克雷伯菌是否具有碳青霉烯耐药性。
+2. 通过输入 12 项临床指标，模型将给出耐药概率。
+3. 本工具仅用于科研演示，不能替代临床诊断。
 """)
 
-st.title("CRKP Carbapenem Resistance Risk Assessment Tool")
+# 模型加载
+model_path = os.path.join("model", "model.joblib")
+try:
+    bundle = joblib.load(model_path)
+    pipe = bundle["pipeline"]
+    FEATURES = bundle["features"]
+except Exception as e:
+    st.error("❌ 模型加载失败，请检查 model/model.joblib 是否存在且格式正确。")
+    st.stop()
 
-# Load model
-bundle = joblib.load("model/model.joblib")
-pipe = bundle["pipeline"]
-FEATURES = bundle["features"]
-
-# Sidebar input fields
+# 左侧输入栏
 with st.sidebar:
-    st.markdown("### Please fill in the following 12 indicators:")
-    days_catheter = st.number_input("Days of Indwelling Urinary Catheterization", min_value=0, max_value=365, value=0)
-    vascular = st.selectbox("Vascular System Disease", ["No", "Yes"])
-    resp_sys = st.selectbox("Respiratory System Disease", ["No", "Yes"])
-    days_carbapenem = st.number_input("Days of Carbapenems Use", min_value=0, max_value=365, value=0)
-    icu = st.selectbox("ICU Admission", ["No", "Yes"])
-    metabolic = st.selectbox("Metabolic Abnormality", ["No", "Yes"])
-    resp_inf = st.selectbox("Respiratory Tract Infection", ["No", "Yes"])
-    urinary = st.selectbox("Urinary System Disease", ["No", "Yes"])
-    albumin = st.number_input("Albumin (g/L)", min_value=0.0, max_value=100.0, value=40.0, step=0.1)
-    age = st.number_input("Age (years)", min_value=0, max_value=120, value=60)
-    digestive = st.selectbox("Digestive System Disease", ["No", "Yes"])
-    days_beta = st.number_input("Days of β-Lactamase Inhibitor Combinations Use", min_value=0, max_value=365, value=0)
+    st.header("📝 请填写以下 12 项指标：")
+    days_catheter = st.number_input("导尿管留置天数", min_value=0, max_value=365, value=0)
+    vascular = st.selectbox("血管系统疾病", ["否", "是"])
+    resp_sys = st.selectbox("呼吸系统疾病", ["否", "是"])
+    days_carbapenem = st.number_input("碳青霉烯使用天数", min_value=0, max_value=365, value=0)
+    icu = st.selectbox("是否入住 ICU", ["否", "是"])
+    metabolic = st.selectbox("代谢异常", ["否", "是"])
+    resp_inf = st.selectbox("呼吸道感染", ["否", "是"])
+    urinary = st.selectbox("泌尿系统疾病", ["否", "是"])
+    albumin = st.number_input("白蛋白 (g/L)", min_value=0.0, max_value=100.0, value=40.0, step=0.1)
+    age = st.number_input("年龄 (岁)", min_value=0, max_value=120, value=60)
+    digestive = st.selectbox("消化系统疾病", ["否", "是"])
+    days_beta = st.number_input("β-内酰胺酶抑制剂使用天数", min_value=0, max_value=365, value=0)
 
-def bin_code(x): return 1 if x == "Yes" else 0
+def bin_code(x): return 1 if x == "是" else 0
 
 input_dict = {
     "Days of Indwelling Urinary Catheterization": days_catheter,
@@ -55,15 +59,24 @@ input_dict = {
 }
 X_input = pd.DataFrame([input_dict], columns=FEATURES)
 
-# Center: feature importance image
-st.image("assets/SFS12-2.jpg", caption="Feature importance identified by SFS (12 features)")
+# 中间展示特征图
+image_path = os.path.join("assets", "SFS12-2.jpg")
+if os.path.exists(image_path):
+    st.image(image_path, caption="SFS 选出的 12 项特征重要性图")
+else:
+    st.warning("⚠️ 特征图未找到，请确认 assets/SFS12-2.jpg 是否已上传。")
 
-# Result box
-if st.button("Calculate Resistance Probability"):
-    proba = pipe.predict_proba(X_input)[:, 1][0]
-    if proba > 0.5:
-        st.markdown(f"<div style='color:red; font-size:24px; font-weight:bold;'>Predicted Probability: {proba*100:.2f}%</div>", unsafe_allow_html=True)
-    else:
-        st.markdown(f"<div style='color:green; font-size:24px; font-weight:bold;'>Predicted Probability: {proba*100:.2f}%</div>", unsafe_allow_html=True)
+# 右侧预测结果
+st.subheader("📊 预测结果")
+if st.button("点击计算耐药概率"):
+    try:
+        proba = pipe.predict_proba(X_input)[:, 1][0]
+        color = "red" if proba > 0.5 else "green"
+        st.markdown(
+            f"<div style='color:{color}; font-size:24px; font-weight:bold;'>预测耐药概率：{proba*100:.2f}%</div>",
+            unsafe_allow_html=True
+        )
+    except Exception as e:
+        st.error("❌ 预测失败，请检查输入格式或模型兼容性。")
 
-st.caption("Disclaimer: This tool is based on ENN‑BLSMOTE‑XGBoost and 12 features selected by SFS. It is intended for research demonstration only and should not be used as a substitute for clinical diagnosis.")
+st.caption("模型基于 ENN‑BLSMOTE‑XGBoost 与 SFS 特征选择，仅用于科研演示。")
