@@ -1,0 +1,22 @@
+{
+  "records": 5794,
+  "unique_patients": 4913,
+  "resistant_records": 999,
+  "susceptible_records": 4795,
+  "natural_prevalence": 0.1724197445633414,
+  "raw_oof_brier": 0.08536462345881327,
+  "calibrated_oof_brier_fit_summary": 0.060064099359386634,
+  "platt_intercept": -1.3324867282870227,
+  "platt_coefficient": 0.5750904517204628,
+  "operating_threshold": 0.24445459763055027,
+  "note": "The calibrator is fitted from patient-grouped out-of-fold predictions. Use nested cross-validation or an untouched temporal cohort for unbiased manuscript calibration performance estimates.",
+  "software_versions": {
+    "python": "3.9.16",
+    "numpy": "1.25.0",
+    "pandas": "2.0.2",
+    "scikit_learn": "1.2.2",
+    "imbalanced_learn": "0.12.4",
+    "xgboost": "2.0.2",
+    "joblib": "1.2.0"
+  }
+}
